@@ -1,0 +1,17 @@
+sudo mdadm --zero-superblock --force /dev/sd{b,c,d,e,f}
+sudo mdadm --create --verbose /dev/md0 -l6 -n 5 /dev/sd{b,c,d,e,f}
+
+sudo mkdir /etc/mdadm
+echo "DEVICE partitions" | sudo tee /etc/mdadm/mdadm.conf
+sudo bash -c "mdadm --detail --scan --verbose | awk '/ARRAY/ {print}' >> /etc/mdadm/mdadm.conf"
+
+sudo parted -s /dev/md0 mklabel gpt
+sudo parted -s /dev/md0 mkpart primary ext4 0% 20%
+sudo parted -s /dev/md0 mkpart primary ext4 20% 40%
+sudo parted -s /dev/md0 mkpart primary ext4 40% 60%
+sudo parted -s /dev/md0 mkpart primary ext4 60% 80%
+sudo parted -s /dev/md0 mkpart primary ext4 80% 100%
+
+for i in {1..5}; do sudo mkfs.ext4 /dev/md0p$i; done
+mkdir -p /raid/part{1..5}
+for i in {1..5}; do sudo mount --source /dev/md0p$i --target /raid/part$i; done
